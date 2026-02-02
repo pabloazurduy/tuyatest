@@ -1,0 +1,13 @@
+# Tuya Configuration Template
+# Copy this file to config.toml and fill in your credentials
+
+[cloud]
+api_region = "us"  # us, eu, cn, in
+api_key = "YOUR_API_KEY"
+api_secret = "YOUR_API_SECRET"
+
+[device]
+device_id = "YOUR_DEVICE_ID"
+ip_address = "192.168.x.x"
+local_key = "YOUR_LOCAL_KEY"
+version = 3.3
