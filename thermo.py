@@ -33,32 +33,22 @@ API_SECRET = config['cloud']['api_secret']
 DEVICE_ID = config['device']['device_id']
 
 def get_cloud():
-    return tinytuya.Cloud(
-        apiRegion=API_REGION,
-        apiKey=API_KEY,
-        apiSecret=API_SECRET
-    )
+    return tinytuya.Cloud(apiRegion=API_REGION, apiKey=API_KEY, apiSecret=API_SECRET)
 
-def get_status():
-    cloud = get_cloud()
-    result = cloud.getstatus(DEVICE_ID)
-    
-    if not result.get('success'):
-        print(f"Error: {result}")
-        return None
-    
-    # Parse status into readable dict
-    status = {}
-    for item in result.get('result', []):
-        status[item['code']] = item['value']
-    
-    return status
+def send_command(code, value):
+    result = get_cloud().sendcommand(DEVICE_ID, {'commands': [{'code': code, 'value': value}]})
+    if result.get('success'):
+        print(f"✅ {code} -> {value}")
+    else:
+        print(f"❌ Error: {result}")
+    return result.get('success')
 
 def print_status():
-    status = get_status()
-    if not status:
+    result = get_cloud().getstatus(DEVICE_ID)
+    if not result.get('success'):
+        print(f"Error: {result}")
         return
-    
+    status = {item['code']: item['value'] for item in result.get('result', [])}
     print("\n🌡️  WiFi Smart Thermostat Status")
     print("=" * 40)
     print(f"  State:        {'🟢 ON' if status.get('work_state') == 'opened' else '🔴 OFF'}")
@@ -71,121 +61,34 @@ def print_status():
     print(f"  System Mode:  {status.get('system_mode', 'unknown')}")
     print()
 
-def send_command(code: str, value):
-    """Send a command to the thermostat via cloud API"""
-    cloud = get_cloud()
-    commands = {'commands': [{'code': code, 'value': value}]}
-    result = cloud.sendcommand(DEVICE_ID, commands)
-    return result
-
-def set_temperature(temp: float):
-    """Set target temperature in Celsius"""
-    temp_value = int(temp * 10)  # API uses tenths of degrees
-    
-    if temp_value < 50 or temp_value > 300:  # 5°C to 30°C
-        print("Error: Temperature must be between 5°C and 30°C")
-        return False
-    
-    result = send_command('temp_set', temp_value)
-    if result.get('success'):
-        print(f"✅ Temperature set to {temp}°C")
-        return True
-    else:
-        print(f"❌ Error: {result}")
-        return False
-
-def turn_on():
-    result = send_command('work_state', 'opened')
-    if result.get('success'):
-        print("✅ Thermostat turned ON")
-    else:
-        print(f"❌ Error: {result}")
-
-def turn_off():
-    result = send_command('work_state', 'closed')
-    if result.get('success'):
-        print("✅ Thermostat turned OFF")
-    else:
-        print(f"❌ Error: {result}")
-
-def set_mode(mode: str):
-    """Set thermostat mode: auto, manual, on, off"""
-    valid_modes = ['auto', 'manual', 'on', 'off']
-    if mode not in valid_modes:
-        print(f"Error: Mode must be one of: {', '.join(valid_modes)}")
-        return False
-    
-    result = send_command('mode', mode)
-    if result.get('success'):
-        print(f"✅ Mode set to {mode}")
-        return True
-    else:
-        print(f"❌ Error: {result}")
-        return False
-
-def set_system_mode(mode: str):
-    """Set system mode: comfort, eco"""
-    mode_map = {
-        'comfort': 'comfort_mode',
-        'eco': 'Eco_mode',
-        'comfort_mode': 'comfort_mode',
-        'eco_mode': 'Eco_mode',
-    }
-    
-    mode_value = mode_map.get(mode.lower())
-    if not mode_value:
-        print("Error: System mode must be 'comfort' or 'eco'")
-        return False
-    
-    result = send_command('system_mode', mode_value)
-    if result.get('success'):
-        print(f"✅ System mode set to {mode}")
-        return True
-    else:
-        print(f"❌ Error: {result}")
-        return False
-
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return
     
-    command = sys.argv[1].lower()
+    cmd = sys.argv[1].lower()
+    arg = sys.argv[2].lower() if len(sys.argv) > 2 else None
     
-    if command == 'status':
-        print_status()
-    
-    elif command == 'set-temp':
-        if len(sys.argv) < 3:
-            print("Usage: python thermo.py set-temp <temperature>")
-            return
-        try:
-            temp = float(sys.argv[2])
-            set_temperature(temp)
-        except ValueError:
-            print("Error: Invalid temperature value")
-    
-    elif command == 'on':
-        turn_on()
-    
-    elif command == 'off':
-        turn_off()
-    
-    elif command == 'mode':
-        if len(sys.argv) < 3:
-            print("Usage: python thermo.py mode <auto|manual|on|off>")
-            return
-        set_mode(sys.argv[2].lower())
-    
-    elif command == 'system-mode':
-        if len(sys.argv) < 3:
-            print("Usage: python thermo.py system-mode <comfort|eco>")
-            return
-        set_system_mode(sys.argv[2].lower())
-    
-    else:
-        print(f"Unknown command: {command}")
-        print(__doc__)
+    match cmd:
+        case 'status':
+            print_status()
+        case 'on':
+            send_command('work_state', 'opened')
+        case 'off':
+            send_command('work_state', 'closed')
+        case 'set-temp' if arg:
+            temp = int(float(arg) * 10)
+            if 50 <= temp <= 300:
+                send_command('temp_set', temp)
+            else:
+                print("Error: Temperature must be between 5°C and 30°C")
+        case 'mode' if arg in ['auto', 'manual', 'on', 'off']:
+            send_command('mode', arg)
+        case 'system-mode' if arg in ['comfort', 'eco']:
+            send_command('system_mode', 'comfort_mode' if arg == 'comfort' else 'Eco_mode')
+        case _:
+            print(f"Unknown command: {cmd}")
+            print(__doc__)
 
 if __name__ == '__main__':
     main()
