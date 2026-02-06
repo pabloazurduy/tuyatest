@@ -38,9 +38,9 @@ def get_cloud():
 def send_command(code, value):
     result = get_cloud().sendcommand(DEVICE_ID, {'commands': [{'code': code, 'value': value}]})
     if result.get('success'):
-        print(f"✅ {code} -> {value}")
+        print(f"{code} -> {value}")
     else:
-        print(f"❌ Error: {result}")
+        print(f"Error: {result}")
     return result.get('success')
 
 def print_status():
@@ -51,13 +51,13 @@ def print_status():
     status = {item['code']: item['value'] for item in result.get('result', [])}
     print("\n🌡️  WiFi Smart Thermostat Status")
     print("=" * 40)
-    print(f"  State:        {'🟢 ON' if status.get('work_state') == 'opened' else '🔴 OFF'}")
+    print(f"  State:        {'ON' if status.get('work_state') == 'opened' else 'OFF'}")
     print(f"  Mode:         {status.get('mode', 'unknown')}")
     print(f"  Target Temp:  {status.get('temp_set', 0) / 10:.1f}°C")
     print(f"  Current Temp: {status.get('temp_current', 0) / 10:.1f}°C")
     print(f"  Valve Open:   {status.get('valve_open_degree', 0) / 10:.0f}%")
     print(f"  Battery:      {status.get('battery_percentage', 0)}%")
-    print(f"  Child Lock:   {'🔒 On' if status.get('child_lock') else 'Off'}")
+    print(f"  Child Lock:   {'On' if status.get('child_lock') else 'Off'}")
     print(f"  System Mode:  {status.get('system_mode', 'unknown')}")
     print()
 
