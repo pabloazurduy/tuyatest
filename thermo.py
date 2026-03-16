@@ -77,6 +77,11 @@ def main():
         case 'off':
             send_command('work_state', 'closed')
         case 'set-temp' if arg:
+            result = get_cloud().getstatus(DEVICE_ID)
+            status = {item['code']: item['value'] for item in result.get('result', [])}
+            if status['mode'] == 'off':
+                print(f'{status['mode'] = }, turning it on to manual ')
+                send_command('mode', 'manual')    
             temp = int(float(arg) * 10)
             if 50 <= temp <= 300:
                 send_command('temp_set', temp)
@@ -85,7 +90,7 @@ def main():
         case 'mode' if arg in ['auto', 'manual', 'on', 'off']:
             send_command('mode', arg)
         case 'system-mode' if arg in ['comfort', 'eco']:
-            send_command('system_mode', 'comfort_mode' if arg == 'comfort' else 'Eco_mode')
+            send_command('system_mode', 'comfort_mode' if arg == 'comfort' else 'eco_mode')
         case _:
             print(f"Unknown command: {cmd}")
             print(__doc__)

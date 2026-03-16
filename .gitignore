@@ -12,3 +12,7 @@ wheels/
 # Secrets and config
 config.toml
 snapshot.json
+tinytuya.json
+devices.json
+tuya-raw.json
+
